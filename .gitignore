@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+*/venv/
+*/bot-venv/
+
+# Logs and results
+*.log
+results/
+
+# Environment variables
+.env
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+
