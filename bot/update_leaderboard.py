@@ -10,9 +10,7 @@ load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
 S3_BUCKET = "acserver-results"
 REGION = "us-east-1"
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-print(DISCORD_TOKEN)
-CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
-print(CHANNEL_ID)
+CHANNEL_ID = int(os.getenv("CHANNEL_ID"))  # ensure it's an int
 PROCESSED_FILES_PATH = "processed_files.json"
 
 # --- AWS + Discord setup ---
@@ -33,6 +31,13 @@ else:
     processed_files = set()
 
 # --- Utility functions ---
+
+def escape_markdown(text: str) -> str:
+    """Escape Discord markdown characters so usernames render literally."""
+    for ch in ('*', '_', '~', '`', '|', '>'):
+        text = text.replace(ch, f'\\{ch}')
+    return text
+
 def ms_to_time(ms):
     mins = ms // 60000
     secs = (ms // 1000) % 60
@@ -56,10 +61,11 @@ def parse_result_file(data):
 def build_leaderboard_text():
     lines = []
     for (track, model), drivers in leaderboard.items():
-        lines.append(f"🏁 **{track}** | {model}")
+        lines.append(f"🏁 **{escape_markdown(track)}** | {escape_markdown(model)}")
         sorted_drivers = sorted(drivers.items(), key=lambda x: x[1])
         for i, (driver, best) in enumerate(sorted_drivers, start=1):
-            lines.append(f"{i}. {driver} — {ms_to_time(best)}")
+            safe_driver = escape_markdown(driver.strip())  # ✅ sanitize here
+            lines.append(f"{i}. {safe_driver} — {ms_to_time(best)}")
         lines.append("")  # blank line between sections
     return "\n".join(lines) or "No results yet."
 
