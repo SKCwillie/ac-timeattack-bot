@@ -3,8 +3,10 @@ import boto3
 import discord
 from discord.ext import tasks, commands
 import os
+from dotenv import load_dotenv
 
 # --- CONFIG ---
+load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
 S3_BUCKET = "acserver-results"
 REGION = "us-east-1"
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
