@@ -1,0 +1,57 @@
+{
+"season": 1,
+"preseason": {
+	"startDate": "2025-01-01",
+	"track": "magione",
+	"trackConfig": "",
+	"cars": ["bmw_m3_e30"]
+	},
+"event1": {
+	"startDate": "2025-11-17",
+	"track": "spa",
+	"trackConfig": "",
+	"cars": ["bmw_z4_gt3"]
+	},
+"event2": {
+	"startDate": "2025-11-24",
+	"track": "monza",
+	"trackConfig": "",
+	"cars": ["ferrari_f40"]
+	},
+"event3": {
+	"startDate": "2025-12-01",
+	"track": "imola",
+	"trackConfig": "",
+	"cars": ["abarth500_s1"]
+	},
+"event4": {
+	"startDate": "2025-12-08",
+	"track": "ks_laguna_seca",
+	"trackConfig": "",
+	"cars": ["ks_mazda_mx5_cup"]
+	},
+"event5": {
+	"startDate": "2025-12-15",
+	"track": "ks_highlands",
+	"trackConfig": "layout_drift",
+	"cars": ["ks_corvette_c7r"]
+	},
+"event6": {
+	"startDate": "2025-12-22",
+	"track": "ks_zandvoort",
+	"trackConfig": "",
+	"cars": ["ks_toyota_ae86"]
+	},
+"event7": {
+	"startDate": "2025-12-29",
+	"track": "ks_silverstone",
+	"trackConfig": "gp",
+	"cars": ["ks_ferrari_sf70h"]
+	},
+"event8": {
+	"startDate": "2026-01-05",
+	"track": "ks_nordschleife",
+	"trackConfig": "",
+	"cars": ["ks_porsche_911_gt3_rs"]
+	}
+}
