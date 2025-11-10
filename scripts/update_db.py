@@ -65,7 +65,7 @@ def upsert_laps(result):
             "tyre": lap.get("Tyre", ""),
             "restrictor": lap.get("Restrictor", 0),
             "lapTimestamp": lap_timestamp,
-            "uploadTimestamp": upload_timestamp,
+            "uploadTimestamp": upload_timestamp
         }
 
         try:
