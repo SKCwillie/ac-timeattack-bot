@@ -3,6 +3,7 @@ import json
 import time
 from decimal import Decimal
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import boto3
 from dotenv import load_dotenv
 
@@ -11,8 +12,7 @@ load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
 RESULTS_DIR = os.getenv("RESULTS_DIR")
 PROCESSED_FILES_PATH = os.getenv("PROCESSED_FILES_PATH")
 REGION = os.getenv("REGION")
-print(RESULTS_DIR)
-print(REGION)
+SEASON_CONFIG_PATH = os.getenv("SEASON_CONFIG_PATH")
 
 # --- AWS setup ---
 dynamodb = boto3.resource("dynamodb", region_name=REGION)
@@ -25,22 +25,49 @@ if os.path.exists(PROCESSED_FILES_PATH):
 else:
     processed_files = set()
 
+# --- Load season config ---
+with open(SEASON_CONFIG_PATH) as f:
+    season_config = json.load(f)
 
-# --- Helpers ---
-def build_event_id(track_name, track_config):
-    """Return event ID like 2025-11-magione:default."""
-    now = datetime.now()
-    year = now.year
-    month = f"{now.month:02d}"
-    track_config = (track_config or "default").strip()
-    return f"{year}-{month}-{track_name}:{track_config}"
+
+def get_current_event():
+    """Return the current event based on Central Time."""
+    central = ZoneInfo("America/Chicago")  # CST/CDT zone
+    today = datetime.now(central).date()
+    active_event_name = None
+    active_event_data = None
+
+    for event_name, event_data in season_config.items():
+        if event_name == "season":
+            continue
+        start_date = datetime.strptime(event_data["startDate"], "%Y-%m-%d").date()
+        if start_date <= today:
+            if not active_event_data or start_date > datetime.strptime(active_event_data["startDate"], "%Y-%m-%d").date():
+                active_event_name = event_name
+                active_event_data = event_data
+
+    if not active_event_data:
+        # Before season start — default to preseason
+        active_event_name = "preseason"
+        active_event_data = season_config["preseason"]
+
+    season_number = season_config.get("season", 1)
+    print(f"📅 Current event (CST): {active_event_name} (season {season_number})")
+    return season_number, active_event_name, active_event_data
+
+
+def build_event_id(season, event_name):
+    """Return DynamoDB event ID like season1#event2."""
+    return f"season{season}#{event_name}"
 
 
 def upsert_laps(result):
     """Insert every lap from the 'Laps' array into DynamoDB."""
-    track = result.get("TrackName", "unknown")
-    track_config = result.get("TrackConfig", "").strip() or "default"
-    event_id = build_event_id(track, track_config)
+    season, event_name, event_data = get_current_event()
+    event_id = build_event_id(season, event_name)
+    track = event_data["track"]
+    track_config = event_data.get("trackConfig", "").strip() or "default"
+    allowed_cars = event_data.get("cars", [])
 
     laps = result.get("Laps", [])
     if not laps:
@@ -52,11 +79,16 @@ def upsert_laps(result):
         driver_guid = lap.get("DriverGuid", "")
         car_model = lap.get("CarModel", "")
 
+        # Skip laps that don’t match the current event’s cars
+        if allowed_cars and car_model not in allowed_cars:
+            print(f"🚫 Skipping {driver_name} in {car_model} (not part of current event)")
+            continue
+
         if not driver_guid or not driver_name:
             print("Skipping blank lap")
-            continue  # skip blank entries
+            continue
 
-        upload_timestamp = datetime.utcnow().isoformat()
+        upload_timestamp = datetime.now(ZoneInfo("America/Chicago")).isoformat()
         lap_timestamp = lap.get("Timestamp", 0)
 
         item = {
@@ -72,20 +104,21 @@ def upsert_laps(result):
             "ballastKG": lap.get("BallastKG", 0),
             "tyre": lap.get("Tyre", ""),
             "restrictor": lap.get("Restrictor", 0),
-            "lapTimestamp": lap_timestamp,           # int from AC file
-            "uploadTimestamp": upload_timestamp,     # ISO string when processed
+            "lapTimestamp": lap_timestamp,
+            "uploadTimestamp": upload_timestamp,
+            "season": season,
+            "eventName": event_name,
         }
 
         try:
             table.put_item(Item=item)
-            print(f"✅ {driver_name} | {car_model} | {track}:{track_config} | {lap.get('LapTime')} ms")
+            print(f"✅ {driver_name} | {car_model} | {event_id} | {lap.get('LapTime')} ms")
         except Exception as e:
             print(f"❌ DynamoDB insert failed for {driver_name}: {e}")
 
 
 def process_new_results():
     print("Process new results")
-    """Read new JSON files from results folder and upload to DynamoDB."""
     files = [f for f in sorted(os.listdir(RESULTS_DIR)) if f.endswith(".json")]
 
     for file_name in files:
@@ -101,7 +134,6 @@ def process_new_results():
 
             upsert_laps(result)
 
-            # Delete file after successful insert
             os.remove(full_path)
             print(f"🗑️ Deleted {file_name} after success.")
             processed_files.add(file_name)
@@ -109,11 +141,12 @@ def process_new_results():
         except Exception as e:
             print(f"❌ Error processing {file_name}: {e}")
 
-    # Save processed file list
     with open(PROCESSED_FILES_PATH, "w") as f:
         json.dump(list(processed_files), f)
+
 
 if __name__ == "__main__":
     while True:
         process_new_results()
         time.sleep(60)
+
