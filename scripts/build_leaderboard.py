@@ -5,14 +5,14 @@ from boto3.dynamodb.conditions import Key
 from decimal import Decimal
 from dotenv import load_dotenv
 from pathlib import Path
-from get_event_id import get_current_event_id
+from get_event_id import read_current_event
 
 # --- CONFIG ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
 REGION = os.getenv("REGION")
 TABLE_NAME = os.getenv("TABLE_NAME")
 LEADERBOARD_PATH=Path(os.getenv("LEADERBOARD_PATH"))
-EVENT_ID = get_current_event_id()
+EVENT_ID = read_current_event()
 
 # --- SETUP ---
 dynamodb = boto3.resource("dynamodb", region_name=REGION)
