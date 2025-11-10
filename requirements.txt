@@ -1,4 +1,5 @@
 boto3
 discord.py
 python-dotenv
+pytz
 
