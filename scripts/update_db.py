@@ -133,9 +133,6 @@ def process_new_results():
                 result = json.load(f)
 
             upsert_laps(result)
-
-            os.remove(full_path)
-            print(f"🗑️ Deleted {file_name} after success.")
             processed_files.add(file_name)
 
         except Exception as e:
