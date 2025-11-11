@@ -108,14 +108,24 @@ def save_leaderboard(leaderboard):
 
 def update_leaderboard(event_id):
     new_leaderboard = build_leaderboard(event_id)
-    existing_leaderboard = load_existing_leaderboard()
-    if new_leaderboard == existing_leaderboard:
+
+    # Always write a fresh leaderboard snapshot for this event
+    current_event_data = new_leaderboard.get(event_id, [])
+    if not current_event_data:
+        print(f"No valid laps found for {event_id}, skipping write.")
+        return
+
+    # Only write if the file content for this event actually changed
+    existing = load_existing_leaderboard()
+    old_event_data = existing.get(event_id, [])
+    if old_event_data == current_event_data:
         print("No change to leaderboard detected")
-        pass
-    else:
-        existing_leaderboard[EVENT_ID] = new_leaderboard.get(EVENT_ID, [])
-        save_leaderboard(existing_leaderboard)
-        print(f"Leaderboard updated and saved to {LEADERBOARD_PATH}")
+        return
+
+    # Replace just this event’s data
+    leaderboard_to_save = {event_id: current_event_data}
+    save_leaderboard(leaderboard_to_save)
+    print(f"✅ Leaderboard updated and saved to {LEADERBOARD_PATH}")
 
 
 
