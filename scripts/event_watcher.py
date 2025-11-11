@@ -1,16 +1,22 @@
 import os
 import json
+import sys
 import time
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 import pytz
 from get_event_id import get_current_event_id
 
+# --- LOAD ENV ---
+load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
+
 # --- CONFIG ---
 CHECK_INTERVAL = 5
 SEASON_CONFIG_PATH = Path(os.getenv("SEASON_CONFIG_PATH"))
 EVENT_FILE = Path(os.getenv("EVENT_FILE"))
+UPDATE_SCRIPT = Path("/home/ubuntu/ac-timeattack-bot/scripts/update_server.py")
 
 
 def write_event(event_id):
@@ -23,6 +29,7 @@ def write_event(event_id):
     with open(tmp_path, "w") as f:
         json.dump(data, f, indent=2)
     tmp_path.replace(EVENT_FILE)
+    print(f"[event_watcher] 📝 Wrote new current event: {event_id}")
 
 
 def read_current_event():
@@ -45,6 +52,29 @@ def get_config_mtime():
         return 0
 
 
+def trigger_server_update():
+    """Run update_server.py to apply new event to AC server."""
+    try:
+        python_exec = sys.executable  # use the same Python that's running this script
+        print(f"[event_watcher] ⚙️  Updating AC server configs using {python_exec}...")
+        result = subprocess.run(
+            [python_exec, str(UPDATE_SCRIPT)],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode == 0:
+            print("[event_watcher] ✅ AC server updated successfully.")
+            if result.stdout.strip():
+                print(result.stdout.strip())
+        else:
+            print("[event_watcher] ⚠️ AC server update failed.")
+            if result.stderr.strip():
+                print(result.stderr.strip())
+    except Exception as e:
+        print(f"[event_watcher] ❌ Failed to run update script: {e}")
+
+
 def monitor_current_event():
     """Continuously check seasonConfig.json and update event file if changed."""
     print("[event_watcher] Starting event monitor...")
@@ -53,17 +83,18 @@ def monitor_current_event():
 
     while True:
         try:
-            # Only recompute if config file changed or interval elapsed
+            # detect season config changes
             mtime = get_config_mtime()
             if mtime != last_config_mtime:
                 print("[event_watcher] Detected config file change.")
                 last_config_mtime = mtime
 
-            # Always check the date/time, but this is a fast call
+            # check if the active event should change
             current_event = get_current_event_id()
             if current_event != last_event:
-                print(f"[event_watcher] Event changed → {current_event}")
+                print(f"[event_watcher] 🔄 Event changed → {current_event}")
                 write_event(current_event)
+                trigger_server_update()
                 last_event = current_event
             else:
                 print(f"[event_watcher] Event unchanged ({current_event})")
@@ -71,10 +102,10 @@ def monitor_current_event():
         except Exception as e:
             print(f"[event_watcher] Error: {e}")
 
-        # lightweight sleep—low CPU usage
         time.sleep(CHECK_INTERVAL)
 
 
 if __name__ == "__main__":
     monitor_current_event()
+
 
