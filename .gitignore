@@ -11,7 +11,9 @@ venv/
 
 # Logs and results
 *.log
+*.logs
 results/
+
 
 # Environment variables
 .env
@@ -19,4 +21,3 @@ results/
 # OS / editor files
 .DS_Store
 Thumbs.db
-
