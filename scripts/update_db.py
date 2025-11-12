@@ -1,4 +1,5 @@
-import os
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import time
 from decimal import Decimal
@@ -8,6 +9,7 @@ import boto3
 from dotenv import load_dotenv
 from get_event_id import read_current_event
 from build_leaderboard import update_leaderboard
+from logs.logger import logger
 
 # --- CONFIG ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
@@ -70,9 +72,9 @@ def upsert_laps(result):
 
         try:
             table.put_item(Item=item)
-            print(f"✅ {driver_name} | {car_model} | {event_id} | {lap.get('LapTime')} ms")
+            logger.info(f"✅ {driver_name} | {car_model} | {event_id} | {lap.get('LapTime')} ms")
         except Exception as e:
-            print(f"❌ DynamoDB insert failed for {driver_name}: {e}")
+            logger.error(f"❌ DynamoDB insert failed for {driver_name}: {e}")
 
 
 def process_new_results():
@@ -86,7 +88,7 @@ def process_new_results():
         if file_name in processed_files:
             continue
 
-        print(f"📂 Processing {file_name}...")
+        logger.info(f"📂 Processing {file_name}...")
 
         try:
             with open(full_path) as f:
@@ -97,7 +99,7 @@ def process_new_results():
             new_data = True
 
         except Exception as e:
-            print(f"❌ Error processing {file_name}: {e}")
+            logger.error(f"❌ Error processing {file_name}: {e}")
 
     with open(PROCESSED_FILES_PATH, "w") as f:
         json.dump(list(processed_files), f)
@@ -106,9 +108,9 @@ def process_new_results():
         try:
             event_id = read_current_event()
             update_leaderboard(event_id)
-            print("🏁 Leaderboard successfully updated.")
+            logger.info("🏁 Leaderboard successfully updated.")
         except Exception as e:
-            print(f"❌ Failed to update leaderboard: {e}")
+            logger.error(f"❌ Failed to update leaderboard: {e}")
 
 
 

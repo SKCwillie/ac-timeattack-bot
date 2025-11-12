@@ -1,13 +1,13 @@
 {
 "season": 1,
 "preseason": {
-	"startDate": "2025-01-01",
+	"startDate": "2025-11-01",
 	"track": "magione",
 	"trackConfig": "",
 	"cars": ["bmw_m3_e30"]
 	},
 "preseason2":{
-	"startDate": "2025-11-12",
+	"startDate": "2025-11-13",
 	"track": "monza",
 	"trackConfig": "",
 	"cars": ["bmw_m3_e30", "bmw_z4_gt3"]

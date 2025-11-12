@@ -1,4 +1,5 @@
-import os
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import time
 import json
 import re
@@ -7,6 +8,7 @@ import asyncio
 import discord
 from discord.ext import tasks
 from dotenv import load_dotenv
+from logs.logger import logger
 
 # --- CONFIG ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
@@ -68,7 +70,7 @@ def save_msg_id(msg_id):
         with open(LEADERBOARD_MSG_ID_PATH, "w") as f:
             f.write(str(msg_id))
     except Exception as e:
-        print(f"Error saving message ID: {e}")
+        log.error(f"Error saving message ID: {e}")
 
 
 def load_msg_id():
@@ -113,12 +115,14 @@ async def check_leaderboard():
                 and event_name in message.content
             ):
                 await message.edit(content=msg_text)
-                print(f"✏️ Edited existing leaderboard for {event_name}")
+                logger.info(f"✏️ Edited existing leaderboard for {event_name}")
+                logger.info(f"Message contents: {msg_text}")
                 return
 
         # --- If not found, post a new one ---
         await channel.send(msg_text)
-        print(f"🆕 Posted new leaderboard for {event_name}")
+        logger.info(f"🆕 Posted new leaderboard for {event_name}")
+        logger.info(f" Message contents: {msg_text}")
 
     except Exception as e:
         print(f"Error checking leaderboard: {e}")

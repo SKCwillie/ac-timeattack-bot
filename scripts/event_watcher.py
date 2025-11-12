@@ -1,4 +1,6 @@
-import os
+import sys, os
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import sys
 import time
@@ -8,6 +10,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import pytz
 from get_event_id import get_current_event_id
+from logs.logger import logger
 
 # --- LOAD ENV ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
@@ -86,13 +89,13 @@ def monitor_current_event():
             # detect season config changes
             mtime = get_config_mtime()
             if mtime != last_config_mtime:
-                print("[event_watcher] Detected config file change.")
+                logger.info("[event_watcher] Detected config file change.")
                 last_config_mtime = mtime
 
             # check if the active event should change
             current_event = get_current_event_id()
             if current_event != last_event:
-                print(f"[event_watcher] 🔄 Event changed → {current_event}")
+                logger.info(f"[event_watcher] 🔄 Event changed → {current_event}")
                 write_event(current_event)
                 trigger_server_update()
                 last_event = current_event
@@ -100,7 +103,7 @@ def monitor_current_event():
                 print(f"[event_watcher] Event unchanged ({current_event})")
 
         except Exception as e:
-            print(f"[event_watcher] Error: {e}")
+            logger.error(f"[event_watcher] Error: {e}")
 
         time.sleep(CHECK_INTERVAL)
 
