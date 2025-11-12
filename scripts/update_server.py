@@ -1,8 +1,10 @@
-import os
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import subprocess
 import configparser
 from dotenv import load_dotenv
+from logs.logger import logger
 
 # --- Load .env ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
@@ -116,16 +118,16 @@ RESTRICTOR=0
     with open(ENTRY_LIST_PATH, "w") as f:
         f.write("\n".join(entries))
 
-    print(f"✅ Created {ENTRY_LIST_PATH} with {total_slots} slots for {num_cars} cars.")
+    logger.info(f"✅ Created {ENTRY_LIST_PATH} with {total_slots} slots for {num_cars} cars.")
 
 
 def restart_acserver():
     """Restart the Assetto Corsa server service."""
     try:
         subprocess.run(["sudo", "systemctl", "restart", SERVICE_NAME], check=True)
-        print(f"🔁 Restarted {SERVICE_NAME}")
+        logger.info(f"🔁 Restarted {SERVICE_NAME}")
     except subprocess.CalledProcessError as e:
-        print(f"⚠️ Failed to restart service: {e}")
+        logger.info(f"⚠️ Failed to restart service: {e}")
 
 
 def main():
@@ -141,7 +143,7 @@ def main():
     cars = event.get("cars", [])
 
     event_label = f"{season_key}#{event_key}"
-    print(f"📅 Applying {event_label}: {track} ({track_config}) with cars {cars}")
+    logger.info(f"📅 Applying {event_label}: {track} ({track_config}) with cars {cars}")
 
     update_server_cfg(event_label, track, track_config, cars)
     update_entry_list(cars, TOTAL_SLOTS)

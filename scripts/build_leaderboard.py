@@ -1,4 +1,5 @@
-import os
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -6,6 +7,7 @@ from decimal import Decimal
 from dotenv import load_dotenv
 from pathlib import Path
 from get_event_id import read_current_event
+from logs.logger import logger
 
 # --- CONFIG ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
@@ -94,7 +96,7 @@ def load_existing_leaderboard():
             with open(LEADERBOARD_PATH, "r") as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            print("Warning: leaderboard file is corrupt, starting fresh.")
+            logger.error("Warning: leaderboard file is corrupt, starting fresh.")
     return {}
 
 
@@ -112,20 +114,21 @@ def update_leaderboard(event_id):
     # Always write a fresh leaderboard snapshot for this event
     current_event_data = new_leaderboard.get(event_id, [])
     if not current_event_data:
-        print(f"No valid laps found for {event_id}, skipping write.")
+        logger.info(f"No valid laps found for {event_id}, skipping write.")
         return
 
     # Only write if the file content for this event actually changed
     existing = load_existing_leaderboard()
     old_event_data = existing.get(event_id, [])
     if old_event_data == current_event_data:
-        print("No change to leaderboard detected")
+        logger.info("No change to leaderboard detected")
         return
 
     # Replace just this event’s data
     leaderboard_to_save = {event_id: current_event_data}
     save_leaderboard(leaderboard_to_save)
-    print(f"✅ Leaderboard updated and saved to {LEADERBOARD_PATH}")
+    logger.info(f"✅ Leaderboard updated and saved to {LEADERBOARD_PATH}")
+    logger.info(f"{leaderboard_to_save}")
 
 
 
