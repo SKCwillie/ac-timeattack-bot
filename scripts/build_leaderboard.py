@@ -15,7 +15,6 @@ REGION = os.getenv("REGION")
 TABLE_NAME = os.getenv("TABLE_NAME")
 LEADERBOARD_PATH=Path(os.getenv("LEADERBOARD_PATH"))
 SEASON_CONFIG_PATH=os.getenv("SEASON_CONFIG_PATH")
-EVENT_ID = read_current_event()
 
 # --- SETUP ---
 dynamodb = boto3.resource("dynamodb", region_name=REGION)
@@ -140,27 +139,32 @@ def save_leaderboard(leaderboard):
 def update_leaderboard(event_id):
     new_leaderboard = build_leaderboard(event_id)
 
-    # Always write a fresh leaderboard snapshot for this event
     current_event_data = new_leaderboard.get(event_id, [])
     if not current_event_data:
         logger.info(f"No valid laps found for {event_id}, skipping write.")
         return
 
-    # Only write if the file content for this event actually changed
+    # Load existing file (may be empty)
     existing = load_existing_leaderboard()
+
+    # If data hasn't changed, skip write
     old_event_data = existing.get(event_id, [])
     if old_event_data == current_event_data:
-        logger.info("No change to leaderboard detected")
+        logger.info("No change to leaderboard detected.")
         return
 
-    # Replace just this event’s data
-    leaderboard_to_save = {event_id: current_event_data}
-    save_leaderboard(leaderboard_to_save)
+    # Append of update only current event
+    existing[event_id] = current_event_data
+
+    # Save entire updated file
+    save_leaderboard(existing)
+
     logger.info(f"✅ Leaderboard updated and saved to {LEADERBOARD_PATH}")
-    logger.info(f"{leaderboard_to_save}")
+    logger.info(f"{existing}")
+
 
 
 
 # --- MAIN EXECUTION ---
 if __name__ == "__main__":
-    update_leaderboard(EVENT_ID)
+    update_leaderboard(read_current_event())
