@@ -106,7 +106,7 @@ async def check_leaderboard():
                 return
 
         # If no existing message, post a new one
-        await channel.send(msg_text + "\n")
+        await channel.send("\n\n" + msg_text + "\n\n")
         logger.info(f"🆕 Posted new leaderboard for {event_name}")
 
     except Exception as e:
