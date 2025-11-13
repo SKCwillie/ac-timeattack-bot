@@ -14,6 +14,7 @@ load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
 REGION = os.getenv("REGION")
 TABLE_NAME = os.getenv("TABLE_NAME")
 LEADERBOARD_PATH=Path(os.getenv("LEADERBOARD_PATH"))
+SEASON_CONFIG_PATH=os.getenv("SEASON_CONFIG_PATH")
 EVENT_ID = read_current_event()
 
 # --- SETUP ---
@@ -45,9 +46,33 @@ def fetch_items_for_event(event_id):
 
     return items
 
+def load_season_config(path):
+    with open(path, "r") as f:
+        return json.load(f)
+
+def get_event_config(season_cfg, event_id):
+    try:
+        _, event_name = event_id.split("#")
+    except ValueError:
+        logger.error(f"Invalid eventId format: {event_id}")
+        return None
+
+    return season_cfg.get(event_name, None)
+
 
 def build_leaderboard(event_id):
-    """Aggregate best laps by eventId → driver (independent of car)."""
+    """Aggregate best laps by eventId → driver (independent of car), filtered by track only."""
+
+    # Load season configuration and event rules
+    season_cfg = load_season_config(SEASON_CONFIG_PATH)
+    event_cfg = get_event_config(season_cfg, event_id)
+
+    if not event_cfg:
+        logger.error(f"No event config found for {event_id}. Cannot filter leaderboard.")
+        return {}
+
+    allowed_track = event_cfg["track"].lower()
+
     items = fetch_items_for_event(event_id)
     leaderboard = {}
 
@@ -58,11 +83,16 @@ def build_leaderboard(event_id):
         cuts = int(item.get("cuts", 0))
         car = item.get("carModel", "unknown")
 
+        # --- FILTER BY TRACK ONLY ---
+        track = item.get("trackName", "").lower()
+        if track != allowed_track:
+            continue
+
         # Skip incomplete or invalid laps
         if not all([event, driver, lap_time]) or cuts > 0:
             continue
 
-        # Convert Decimal/string to float
+        # Normalize numeric type
         if isinstance(lap_time, Decimal):
             lap_time = float(lap_time)
         elif isinstance(lap_time, str):
@@ -80,14 +110,13 @@ def build_leaderboard(event_id):
                 "lap_time": ms_to_time(lap_time)
             }
 
-    # Convert to list of objects sorted by lap time
+    # Format & sort result
     formatted = {}
     for event, drivers in leaderboard.items():
         sorted_entries = sorted(drivers.values(), key=lambda x: x["lap_ms"])
         formatted[event] = sorted_entries
 
     return formatted
-
 
 def load_existing_leaderboard():
     """Load the existing leaderboard file if it exists."""
