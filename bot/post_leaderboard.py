@@ -1,6 +1,8 @@
 import sys, os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import time
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
+sys.path.append(BASE_DIR)
+sys.path.append(SCRIPTS_DIR)
 import json
 import re
 import hashlib
@@ -9,13 +11,13 @@ import discord
 from discord.ext import tasks
 from dotenv import load_dotenv
 from logs.logger import logger
+from get_event_id import read_current_event
 
 # --- CONFIG ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 LEADERBOARD_PATH = os.getenv("LEADERBOARD_PATH")
-LEADERBOARD_MSG_ID_PATH = os.getenv("LEADERBOARD_MSG_ID_PATH")
 
 intents = discord.Intents.default()
 bot = discord.Client(intents=intents)
@@ -24,16 +26,23 @@ last_hash = None
 
 # --- Helpers ---
 def read_leaderboard():
+    """Loads entire leaderboard.json (all events)."""
     try:
         with open(LEADERBOARD_PATH) as f:
-            data = json.load(f)
-        return data
+            return json.load(f)
     except Exception as e:
-        print(f"Error reading leaderboard: {e}")
-        return None
+        logger.error(f"Error reading leaderboard: {e}")
+        return {}
 
+def get_current_event_data():
+    """Return (event_id, rows) for just the CURRENT event."""
+    event_id = read_current_event()
+    all_data = read_leaderboard() or {}
+    rows = all_data.get(event_id, [])
+    return event_id, rows
 
 def format_event_name(key: str) -> str:
+    """Formats eventId like 'season1#preseason2' → 'Season1 - Preseason2'."""
     parts = key.split("#")
     formatted_parts = []
     for part in parts:
@@ -42,20 +51,21 @@ def format_event_name(key: str) -> str:
         formatted_parts.append(part)
     return " - ".join(formatted_parts)
 
+def format_leaderboard(event_id, rows):
+    """Creates the Discord message for the current event's leaderboard."""
+    event_name = format_event_name(event_id)
 
-def format_leaderboard(data):
-    if not data:
-        return "No leaderboard data found."
-    event_key = list(data.keys())[0]
-    event_name = format_event_name(event_key)
-    entries = data[event_key]
     msg = f"**🏁 {event_name} 🏁**\n"
-    for i, entry in enumerate(entries, 1):
+    if not rows:
+        msg += "No leaderboard data yet.\n"
+        return msg
+
+    for i, entry in enumerate(rows, 1):
         driver = entry.get("driver", "Unknown")
         lap = entry.get("lap_time", "N/A")
         msg += f"{i}. {driver} — {lap}\n"
-    return msg
 
+    return msg
 
 def get_file_hash(path):
     try:
@@ -63,25 +73,6 @@ def get_file_hash(path):
             return hashlib.md5(f.read()).hexdigest()
     except Exception:
         return None
-
-
-def save_msg_id(msg_id):
-    try:
-        with open(LEADERBOARD_MSG_ID_PATH, "w") as f:
-            f.write(str(msg_id))
-    except Exception as e:
-        log.error(f"Error saving message ID: {e}")
-
-
-def load_msg_id():
-    if os.path.exists(LEADERBOARD_MSG_ID_PATH):
-        try:
-            with open(LEADERBOARD_MSG_ID_PATH) as f:
-                return int(f.read().strip())
-        except Exception:
-            return None
-    return None
-
 
 # --- Watcher Task ---
 @tasks.loop(seconds=5)
@@ -92,47 +83,40 @@ async def check_leaderboard():
         if not current_hash or current_hash == last_hash:
             return
 
-        # Wait briefly to ensure file write is complete
+        # Allow partial file write to finish
         await asyncio.sleep(2)
         new_hash = get_file_hash(LEADERBOARD_PATH)
         if new_hash != current_hash:
-            return  # file changed again; wait for next cycle
-
-        last_hash = current_hash
-        data = read_leaderboard()
-        if not data:
             return
 
-        channel = bot.get_channel(CHANNEL_ID)
-        event_key = list(data.keys())[0]
-        event_name = format_event_name(event_key)
-        msg_text = format_leaderboard(data)
+        last_hash = current_hash
 
-        # --- Search for a message that matches this event ---
+        # Load ONLY current event data
+        event_id, rows = get_current_event_data()
+        event_name = format_event_name(event_id)
+        msg_text = format_leaderboard(event_id, rows)
+
+        channel = bot.get_channel(CHANNEL_ID)
+
+        # Try to edit existing message showing THIS event's leaderboard
         async for message in channel.history(limit=20):
-            if (
-                message.author == bot.user
-                and event_name in message.content
-            ):
+            if message.author == bot.user and event_name in message.content:
                 await message.edit(content=msg_text)
-                logger.info(f"✏️ Edited existing leaderboard for {event_name}")
-                logger.info(f"Message contents: {msg_text}")
+                logger.info(f"✏️ Edited leaderboard for {event_name}")
                 return
 
-        # --- If not found, post a new one ---
-        await channel.send(msg_text)
+        # If no existing message, post a new one
+        await channel.send(msg_text + "\n")
         logger.info(f"🆕 Posted new leaderboard for {event_name}")
-        logger.info(f" Message contents: {msg_text}")
 
     except Exception as e:
-        print(f"Error checking leaderboard: {e}")
+        logger.error(f"Error checking leaderboard: {e}")
 
-
+# --- Bot Events ---
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
     check_leaderboard.start()
-
 
 bot.run(DISCORD_TOKEN)
 
