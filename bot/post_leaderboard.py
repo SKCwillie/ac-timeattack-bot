@@ -1,4 +1,7 @@
 import sys, os
+
+from scripts.populate_registry import REGISTRY_PATH
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
 sys.path.append(BASE_DIR)
@@ -18,6 +21,7 @@ load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 LEADERBOARD_PATH = os.getenv("LEADERBOARD_PATH")
+REGISTRY_PATH = Path(os.getenv("REGISTRY_PATH"))
 
 intents = discord.Intents.default()
 bot = discord.Client(intents=intents)
@@ -25,6 +29,44 @@ bot = discord.Client(intents=intents)
 last_hash = None
 
 # --- Helpers ---
+def normalize(s: str):
+    """Lowercase, remove spaces, trim."""
+    return s.lower().replace(" ", "").strip()
+
+
+def lookup_real_name(steam_name: str, registry: dict):
+    """
+    Performs a fuzzy match:
+    - ignore case
+    - ignore spaces
+    - match if registry steam name appears anywhere in leaderboard steam name
+    """
+
+    steam_norm = normalize(steam_name)
+
+    for registered_steam, real in registry.items():
+        reg_norm = normalize(registered_steam)
+
+        # Exact normalized match
+        if steam_norm == reg_norm:
+            return real
+
+        # registry name is contained in steam name
+        if reg_norm in steam_norm:
+            return real
+
+        # steam name is contained in registry name
+        if steam_norm in reg_norm:
+            return real
+
+    return None
+
+def load_registry():
+    if REGISTRY_PATH.exists():
+        with open(REGISTRY_PATH, "r") as f:
+            return json.load(f)
+    return {}
+
 def read_leaderboard():
     """Loads entire leaderboard.json (all events)."""
     try:
@@ -54,6 +96,7 @@ def format_event_name(key: str) -> str:
 def format_leaderboard(event_id, rows):
     """Creates the Discord message for the current event's leaderboard."""
     event_name = format_event_name(event_id)
+    registry = load_registry()
 
     msg = f"**🏁 {event_name} 🏁**\n"
     if not rows:
@@ -61,9 +104,13 @@ def format_leaderboard(event_id, rows):
         return msg
 
     for i, entry in enumerate(rows, 1):
-        driver = entry.get("driver", "Unknown")
+        steam_name = entry.get("driver", "Unknown")
         lap = entry.get("lap_time", "N/A")
-        msg += f"{i}. {driver} — {lap}\n"
+
+        real_name = lookup_real_name(steam_name, registry)
+        display_name = real_name if real_name else steam_name
+
+        msg += f"{i}. {display_name} — {lap}\n"
 
     return msg
 
@@ -73,6 +120,7 @@ def get_file_hash(path):
             return hashlib.md5(f.read()).hexdigest()
     except Exception:
         return None
+
 
 # --- Watcher Task ---
 @tasks.loop(seconds=5)
@@ -119,4 +167,3 @@ async def on_ready():
     check_leaderboard.start()
 
 bot.run(DISCORD_TOKEN)
-
