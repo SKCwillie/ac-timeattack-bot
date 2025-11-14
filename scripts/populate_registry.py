@@ -25,20 +25,45 @@ def save_registry():
     print(f"Saved registry.json with {len(registry)} entries")
 
 
-def parse_registry_message(content: str):
+def extract_text_from_message(msg):
     """
-    Expected format:
-        steam name - real name
-        steam_name — Real Name
-    Supports different dash variations.
+    Extracts readable text from:
+      - normal message content
+      - embeds (title, description, fields)
     """
-    pattern = r"(.+?)\s*[-—]\s*(.+)"
-    match = re.match(pattern, content.strip())
-    if match:
-        steam = match.group(1).strip()
-        real = match.group(2).strip()
+    parts = []
+
+    # Raw text content
+    if msg.content:
+        parts.append(msg.content)
+
+    # Embed content
+    for embed in msg.embeds:
+        if embed.title:
+            parts.append(embed.title)
+        if embed.description:
+            parts.append(embed.description)
+        for field in embed.fields:
+            parts.append(f"{field.name} {field.value}")
+
+    # Join all detected text
+    return "\n".join(parts).strip()
+
+def parse_registry_message(msg):
+    text = extract_text_from_message(msg)
+    if not text:
+        return None
+
+    # Pattern: "steam - real name" or "steam — real name"
+    m = re.match(r"(.+?)\s*[-—]\s*(.+)", text)
+    if m:
+        steam = m.group(1).strip()
+        real = m.group(2).strip()
         return steam, real
+
     return None
+
+
 
 
 @client.event
@@ -54,13 +79,14 @@ async def on_ready():
     print(f"📥 Reading messages from #{channel.name}...")
 
     async for msg in channel.history(limit=None):
-        print(f"[DEBUG] Message:", msg.content)  # <-- ADD THIS
+        extracted = extract_text_from_message(msg)
+        print("[DEBUG EXTRACTED]:", repr(extracted))
 
-        parsed = parse_registry_message(msg.content)
+        parsed = parse_registry_message(msg)
         if parsed:
             steam, real = parsed
             registry[steam] = real
-            print(f"[MATCH] {steam} -> {real}")  # <-- ADD THIS
+            print(f"[MATCH] {steam} -> {real}")
         else:
             print("[NO MATCH]")
 
