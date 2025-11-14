@@ -54,10 +54,15 @@ async def on_ready():
     print(f"📥 Reading messages from #{channel.name}...")
 
     async for msg in channel.history(limit=None):
+        print(f"[DEBUG] Message:", msg.content)  # <-- ADD THIS
+
         parsed = parse_registry_message(msg.content)
         if parsed:
             steam, real = parsed
             registry[steam] = real
+            print(f"[MATCH] {steam} -> {real}")  # <-- ADD THIS
+        else:
+            print("[NO MATCH]")
 
     save_registry()
     await client.close()
