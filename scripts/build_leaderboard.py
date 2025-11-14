@@ -60,7 +60,7 @@ def get_event_config(season_cfg, event_id):
 
 
 def build_leaderboard(event_id):
-    """Aggregate best laps by eventId → driver (independent of car), filtered by track only."""
+    """Aggregate best laps by eventId → guid (source of truth), independent of car."""
 
     # Load season configuration and event rules
     season_cfg = load_season_config(SEASON_CONFIG_PATH)
@@ -77,8 +77,8 @@ def build_leaderboard(event_id):
 
     for item in items:
         event = item.get("eventId")
-        driver = item.get("driverName")
-        guid = item.get("driverGuid")
+        driver_name = item.get("driverName")
+        guid = item.get("driverGuid") or item.get("guid")  # 🔥 GUID = identity
         lap_time = item.get("lapTime")
         cuts = int(item.get("cuts", 0))
         car = item.get("carModel", "unknown")
@@ -88,8 +88,8 @@ def build_leaderboard(event_id):
         if track != allowed_track:
             continue
 
-        # Skip incomplete or invalid laps
-        if not all([event, driver, lap_time]) or cuts > 0:
+        # --- Skip invalid laps ---
+        if not all([event, guid, lap_time]) or cuts > 0:
             continue
 
         # Normalize numeric type
@@ -99,13 +99,13 @@ def build_leaderboard(event_id):
             lap_time = float(lap_time)
 
         leaderboard.setdefault(event, {})
-        current_best = leaderboard[event].get(driver)
+        current_best = leaderboard[event].get(guid)
 
-        # Store best lap only
+        # Store best lap per GUID
         if current_best is None or lap_time < current_best["lap_ms"]:
-            leaderboard[event][driver] = {
+            leaderboard[event][guid] = {
                 "guid": guid,
-                "driver": driver,
+                "driver": driver_name,   # display only, safe to change later
                 "car": car,
                 "lap_ms": lap_time,
                 "lap_time": ms_to_time(lap_time)
@@ -118,6 +118,7 @@ def build_leaderboard(event_id):
         formatted[event] = sorted_entries
 
     return formatted
+
 
 def load_existing_leaderboard():
     """Load the existing leaderboard file if it exists."""
