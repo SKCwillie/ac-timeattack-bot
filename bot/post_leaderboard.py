@@ -8,6 +8,7 @@ import re
 import hashlib
 import asyncio
 import discord
+from pathlib import Path
 from discord.ext import tasks
 from dotenv import load_dotenv
 from logs.logger import logger
