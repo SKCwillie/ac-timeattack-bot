@@ -10,8 +10,12 @@ venv/
 */bot-venv/
 
 # Logs and results
+logs/*.log
+logs/*.logs
+logs/*.err
 *.log
 *.logs
+*.err
 results/
 
 
