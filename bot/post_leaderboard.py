@@ -1,7 +1,4 @@
 import sys, os
-
-from scripts.populate_registry import REGISTRY_PATH
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
 sys.path.append(BASE_DIR)
