@@ -169,4 +169,18 @@ def update_leaderboard(event_id):
 
 # --- MAIN EXECUTION ---
 if __name__ == "__main__":
-    update_leaderboard(read_current_event())
+    # Look for args starting with --
+    manual_event = None
+    for arg in sys.argv[1:]:
+        if arg.startswith("--"):
+            manual_event = arg[2:]  # strip leading --
+            break
+
+    if manual_event:
+        event_id = manual_event
+        logger.info(f"📘 Using manual event override: {event_id}")
+    else:
+        event_id = read_current_event()
+        logger.info(f"📗 Using current event: {event_id}")
+
+    update_leaderboard(event_id)
