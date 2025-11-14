@@ -78,6 +78,7 @@ def build_leaderboard(event_id):
     for item in items:
         event = item.get("eventId")
         driver = item.get("driverName")
+        guid = item.get("driverGuid")
         lap_time = item.get("lapTime")
         cuts = int(item.get("cuts", 0))
         car = item.get("carModel", "unknown")
@@ -103,6 +104,7 @@ def build_leaderboard(event_id):
         # Store best lap only
         if current_best is None or lap_time < current_best["lap_ms"]:
             leaderboard[event][driver] = {
+                "guid": guid,
                 "driver": driver,
                 "car": car,
                 "lap_ms": lap_time,
