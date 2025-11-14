@@ -4,6 +4,7 @@ SERVICES=(
   update-dynamo-db
   event-watcher
   discord-leaderboard
+  discord-schedule
 )
 
 for svc in "${SERVICES[@]}"; do
