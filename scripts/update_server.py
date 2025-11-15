@@ -3,6 +3,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import subprocess
 import configparser
+from itertools import cycle
 from dotenv import load_dotenv
 from logs.logger import logger
 
@@ -18,6 +19,30 @@ EVENT_FILE = os.getenv("EVENT_FILE")
 SEASON_CONFIG_PATH = os.getenv("SEASON_CONFIG_PATH")
 SERVICE_NAME = os.getenv("SERVICE_NAME")
 TOTAL_SLOTS = int(os.getenv("SERVER_SLOTS"))
+
+def get_skins_for_car(car_folder: str):
+    skins_path = f"/home/ubuntu/acserver/content/cars/{car_folder}/skins"
+
+    if not os.path.exists(skins_path):
+        return []
+
+    skins = [
+        name for name in os.listdir(skins_path)
+        if os.path.isdir(os.path.join(skins_path, name))
+           and not name.startswith(".")
+    ]
+
+    skins.sort()
+    return skins
+
+def assign_skins(car_folder: str, num_slots: int):
+    skins = get_skins_for_car(car_folder)
+
+    if not skins:
+        return ["default"] * num_slots
+
+    cyc = cycle(skins)
+    return [next(cyc) for _ in range(num_slots)]
 
 
 def read_current_event():
@@ -79,7 +104,7 @@ def update_server_cfg(event_label: str, track: str, track_config: str, cars: lis
 
 
 def update_entry_list(cars: list[str], total_slots: int):
-    """Generate entry_list.ini dividing slots evenly across all cars."""
+    """Generate entry_list.ini assigning skins per car and cycling when needed."""
     if not cars:
         raise ValueError("❌ No cars defined for this event")
 
@@ -91,11 +116,25 @@ def update_entry_list(cars: list[str], total_slots: int):
     car_index = 0
     car_counter = 0
 
-    for i in range(total_slots):
-        model = cars[car_index]
-        entry = f"""[CAR_{i}]
-MODEL={model}
-SKIN=default
+    # Pre-compute how many slots each car gets
+    car_slot_counts = []
+    for i in range(num_cars):
+        extra = 1 if i < remainder else 0
+        car_slot_counts.append(slots_per_car + extra)
+
+    # Assign skins for each car (in advance)
+    car_skins = {}
+    for car, count in zip(cars, car_slot_counts):
+        car_skins[car] = assign_skins(car, count)
+
+    slot_num = 0
+    for car_idx, car in enumerate(cars):
+        skins_for_car = car_skins[car]
+
+        for skin in skins_for_car:
+            entry = f"""[CAR_{slot_num}]
+MODEL={car}
+SKIN={skin}
 SPECTATOR_MODE=0
 DRIVERNAME=
 TEAM=
@@ -103,22 +142,15 @@ GUID=
 BALLAST=0
 RESTRICTOR=0
 """
-        entries.append(entry)
-
-        car_counter += 1
-        if (car_counter >= slots_per_car and remainder == 0) or (
-            remainder > 0 and car_counter >= slots_per_car + 1
-        ):
-            car_index += 1
-            car_counter = 0
-            remainder = max(0, remainder - 1)
-            if car_index >= num_cars:
-                car_index = num_cars - 1  # safeguard
+            entries.append(entry)
+            slot_num += 1
 
     with open(ENTRY_LIST_PATH, "w") as f:
         f.write("\n".join(entries))
 
-    logger.info(f"✅ Created {ENTRY_LIST_PATH} with {total_slots} slots for {num_cars} cars.")
+    logger.info(
+        f"✅ Created {ENTRY_LIST_PATH} with {total_slots} slots for {num_cars} cars (skins assigned)."
+    )
 
 
 def restart_acserver():
