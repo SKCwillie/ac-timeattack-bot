@@ -32,11 +32,17 @@ async def send_discord_message(msg: str):
 
     @client.event
     async def on_ready():
+        await client.wait_until_ready()
         channel = client.get_channel(DISCORD_CHANNEL_ID)
-        await channel.send(msg)
+        if channel is None:
+            print("❌ ERROR: Bot cannot see channel:", DISCORD_CHANNEL_ID)
+        else:
+            await channel.send(msg)
+            print("✅ Message sent to Discord")
         await client.close()
 
     await client.start(DISCORD_TOKEN)
+
 
 def write_event(event_id):
     """Atomically write current event info to file."""
