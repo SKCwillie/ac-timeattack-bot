@@ -1,5 +1,4 @@
 import sys, os
-import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import sys
@@ -8,8 +7,11 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
+import discord
+import asyncio
 import pytz
 from get_event_id import get_current_event_id
+from update_standings import calculate_standings, format_for_discord
 from logs.logger import logger
 
 # --- LOAD ENV ---
@@ -20,11 +22,33 @@ CHECK_INTERVAL = 5
 SEASON_CONFIG_PATH = Path(os.getenv("SEASON_CONFIG_PATH"))
 EVENT_FILE = Path(os.getenv("EVENT_FILE"))
 UPDATE_SCRIPT = Path("/home/ubuntu/ac-timeattack-bot/scripts/update_server.py")
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+DISCORD_CHANNEL_ID = os.getenv("STANDINGS_CHANNEL")
+
+
+async def send_discord_message(msg: str):
+    intents = discord.Intents.default()
+    client = discord.Client(intents=intents)
+
+    @client.event
+    async def on_ready():
+        await client.wait_until_ready()
+        channel = client.get_channel(DISCORD_CHANNEL_ID)
+        if channel is None:
+            print("❌ ERROR: Bot cannot see channel:", DISCORD_CHANNEL_ID)
+        else:
+            await channel.send(msg)
+            print("✅ Message sent to Discord")
+        await client.close()
+
+    await client.start(DISCORD_TOKEN)
 
 
 def write_event(event_id):
     """Atomically write current event info to file."""
     tmp_path = EVENT_FILE.with_suffix(".tmp")
+    season_key = event_id.split("#")[0]
+
     data = {
         "event_id": event_id,
         "last_updated": datetime.now(pytz.timezone("America/Chicago")).isoformat()
@@ -32,7 +56,19 @@ def write_event(event_id):
     with open(tmp_path, "w") as f:
         json.dump(data, f, indent=2)
     tmp_path.replace(EVENT_FILE)
-    print(f"[event_watcher] 📝 Wrote new current event: {event_id}")
+    logger.info(f"[event_watcher] 📝 Wrote new current event: {event_id}")
+    standings = calculate_standings(season_key)
+    logger.info(f"[event_watcher] 📝 Calculated new standings: {season_key}")
+    msg = format_for_discord(standings)
+    logger.info("📢 Sending season standings update to Discord...")
+
+    try:
+        asyncio.run(send_discord_message(msg))
+    except Exception as e:
+        logger.error(f"❌ Failed to send standings to Discord: {e}")
+
+
+
 
 
 def read_current_event():
