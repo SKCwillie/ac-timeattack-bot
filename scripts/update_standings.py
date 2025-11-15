@@ -1,4 +1,5 @@
-import os
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 from dotenv import load_dotenv
 from logs.logger import logger
@@ -8,7 +9,7 @@ load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
 
 SEASON_CONFIG_PATH = os.getenv("SEASON_CONFIG_PATH")
 LEADERBOARD_PATH = os.getenv("LEADERBOARD_PATH")
-SEASON_STANDINGS_PATH = os.getenv("SEASON_STANDINGS_PATH","/home/ubuntu/ac-timeattack-bot/seasonStandings.json")
+SEASON_STANDINGS_PATH = os.getenv("SEASON_STANDINGS_PATH")
 
 # Scoring system (edit if you want)
 POINTS_TABLE = [10, 7, 5, 3, 2]
