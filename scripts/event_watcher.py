@@ -1,8 +1,4 @@
 import sys, os
-import sys, os
-
-from bot.post_leaderboard import DISCORD_TOKEN
-
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import sys
