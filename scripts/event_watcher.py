@@ -10,6 +10,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import pytz
 from get_event_id import get_current_event_id
+from update_standings import calculate_standings
 from logs.logger import logger
 
 # --- LOAD ENV ---
@@ -25,6 +26,8 @@ UPDATE_SCRIPT = Path("/home/ubuntu/ac-timeattack-bot/scripts/update_server.py")
 def write_event(event_id):
     """Atomically write current event info to file."""
     tmp_path = EVENT_FILE.with_suffix(".tmp")
+    season_key = event_id.split("#")[0]
+
     data = {
         "event_id": event_id,
         "last_updated": datetime.now(pytz.timezone("America/Chicago")).isoformat()
@@ -32,7 +35,11 @@ def write_event(event_id):
     with open(tmp_path, "w") as f:
         json.dump(data, f, indent=2)
     tmp_path.replace(EVENT_FILE)
-    print(f"[event_watcher] 📝 Wrote new current event: {event_id}")
+    logger.info(f"[event_watcher] 📝 Wrote new current event: {event_id}")
+    calculate_standings(season_key)
+    logger.info(f"[event_watcher] 📝 Calculated new standings: {season_key}")
+
+
 
 
 def read_current_event():
