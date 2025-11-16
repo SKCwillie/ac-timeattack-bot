@@ -38,6 +38,16 @@ def load_leaderboards():
 
 
 def calculate_standings(season_key="season1"):
+    # Load existing seasonStandings.json (or create empty structure)
+    if os.path.exists(SEASON_STANDINGS_PATH):
+        try:
+            with open(SEASON_STANDINGS_PATH, "r") as f:
+                all_seasons = json.load(f)
+        except Exception:
+            all_seasons = {}
+    else:
+        all_seasons = {}
+
     events = load_season_events()
     lb = load_leaderboards()
 
@@ -47,10 +57,9 @@ def calculate_standings(season_key="season1"):
         full_key = f"{season_key}#{event_key}"
 
         if full_key not in lb:
-            # event not done yet → skip
-            continue
+            continue  # event not done yet
 
-        results = lb[full_key]  # already sorted fastest → slowest
+        results = lb[full_key]
 
         for pos, row in enumerate(results):
             driver = row.get("driver")
@@ -73,19 +82,20 @@ def calculate_standings(season_key="season1"):
                 pos + 1
             )
 
-    # Sort by points, then best position
+    # Sort standings
     final = sorted(
         standings.items(),
         key=lambda x: (-x[1]["points"], x[1]["best_pos"])
     )
 
-    # Save
+    all_seasons[season_key] = final
+
     with open(SEASON_STANDINGS_PATH, "w") as f:
-        json.dump(final, f, indent=2)
+        json.dump(all_seasons, f, indent=2)
 
-    logger.info(f"🏆 Updated season standings at {SEASON_STANDINGS_PATH}")
-
+    logger.info(f"🏆 Updated standings for {season_key} at {SEASON_STANDINGS_PATH}")
     return final
+
 
 
 def format_for_discord(final):
