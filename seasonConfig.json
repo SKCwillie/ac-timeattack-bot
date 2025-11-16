@@ -1,7 +1,7 @@
 {
 "season": 1,
 "preseason": {
-	"startDate": "2025-11-15",
+	"startDate": "2025-11-10",
 	"track": "magione",
 	"trackConfig": "",
 	"cars": ["bmw_m3_e30"]
