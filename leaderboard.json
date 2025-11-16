@@ -22,18 +22,25 @@
       "lap_time": "1:52.104"
     },
     {
+      "guid": "76561198158390475",
+      "driver": "Wattson_",
+      "car": "bmw_z4_gt3",
+      "lap_ms": 114595.0,
+      "lap_time": "1:54.595"
+    },
+    {
+      "guid": "76561198142482069",
+      "driver": "Im in the grass",
+      "car": "bmw_z4_gt3",
+      "lap_ms": 114677.0,
+      "lap_time": "1:54.677"
+    },
+    {
       "guid": "76561198188924845",
       "driver": "luigicool",
       "car": "bmw_m3_e30",
       "lap_ms": 146951.0,
       "lap_time": "2:26.951"
-    },
-    {
-      "guid": "76561198158390475",
-      "driver": "Wattson_",
-      "car": "bmw_m3_e30",
-      "lap_ms": 149279.0,
-      "lap_time": "2:29.279"
     }
   ],
   "season1#preseason": [
