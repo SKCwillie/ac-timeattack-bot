@@ -5,6 +5,7 @@ import json
 import time
 import hashlib
 import discord
+from pathlib import Path
 from discord.ext import tasks
 from dotenv import load_dotenv
 from logs.logger import logger
