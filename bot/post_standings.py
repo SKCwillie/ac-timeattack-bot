@@ -13,6 +13,7 @@ from logs.logger import logger
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
 STANDINGS_CHANNEL_ID = int(os.getenv("STANDINGS_CHANNEL"))
 SEASON_STANDINGS_PATH = os.getenv("SEASON_STANDINGS_PATH")
+EVENT_FILE = Path(os.getenv("EVENT_FILE"))
 intents = discord.Intents.default()
 bot = discord.Client(intents=intents)
 last_hash = None
