@@ -1,0 +1,68 @@
+{
+  "season1": [
+    [
+      "Wattson_",
+      {
+        "points": 12,
+        "events": 2,
+        "best_pos": 1
+      }
+    ],
+    [
+      "The Sack",
+      {
+        "points": 12,
+        "events": 2,
+        "best_pos": 2
+      }
+    ],
+    [
+      "Dima",
+      {
+        "points": 10,
+        "events": 1,
+        "best_pos": 1
+      }
+    ],
+    [
+      "luigicool",
+      {
+        "points": 10,
+        "events": 2,
+        "best_pos": 2
+      }
+    ],
+    [
+      "Rob Macaroni",
+      {
+        "points": 7,
+        "events": 2,
+        "best_pos": 3
+      }
+    ],
+    [
+      "Im in the grass",
+      {
+        "points": 3,
+        "events": 1,
+        "best_pos": 4
+      }
+    ],
+    [
+      "CasFromthePast",
+      {
+        "points": 0,
+        "events": 1,
+        "best_pos": 6
+      }
+    ],
+    [
+      "SubiStrife",
+      {
+        "points": 0,
+        "events": 1,
+        "best_pos": 7
+      }
+    ]
+  ]
+}
