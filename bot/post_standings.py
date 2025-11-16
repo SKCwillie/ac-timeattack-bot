@@ -1,4 +1,6 @@
-import os
+import sys, os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
 import json
 import hashlib
 from pathlib import Path
