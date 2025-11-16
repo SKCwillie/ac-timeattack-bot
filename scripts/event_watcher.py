@@ -3,6 +3,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import sys
 import time
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
