@@ -13,6 +13,7 @@ from discord.ext import tasks
 from dotenv import load_dotenv
 from logs.logger import logger
 from get_event_id import read_current_event
+from bot.utils import normalize, lookup_real_name, load_registry
 
 # --- CONFIG ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
@@ -20,51 +21,12 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 LEADERBOARD_PATH = os.getenv("LEADERBOARD_PATH")
 REGISTRY_PATH = Path(os.getenv("REGISTRY_PATH"))
-
 intents = discord.Intents.default()
 bot = discord.Client(intents=intents)
-
 last_hash = None
 
-# --- Helpers ---
-def normalize(s: str):
-    """Lowercase, remove spaces, trim."""
-    return s.lower().replace(" ", "").strip()
 
-
-def lookup_real_name(steam_name: str, registry: dict):
-    """
-    Performs a fuzzy match:
-    - ignore case
-    - ignore spaces
-    - match if registry steam name appears anywhere in leaderboard steam name
-    """
-
-    steam_norm = normalize(steam_name)
-
-    for registered_steam, real in registry.items():
-        reg_norm = normalize(registered_steam)
-
-        # Exact normalized match
-        if steam_norm == reg_norm:
-            return real
-
-        # registry name is contained in steam name
-        if reg_norm in steam_norm:
-            return real
-
-        # steam name is contained in registry name
-        if steam_norm in reg_norm:
-            return real
-
-    return None
-
-def load_registry():
-    if REGISTRY_PATH.exists():
-        with open(REGISTRY_PATH, "r") as f:
-            return json.load(f)
-    return {}
-
+# --- File Loader ---
 def read_leaderboard():
     """Loads entire leaderboard.json (all events)."""
     try:
@@ -74,6 +36,7 @@ def read_leaderboard():
         logger.error(f"Error reading leaderboard: {e}")
         return {}
 
+
 def get_current_event_data():
     """Return (event_id, rows) for just the CURRENT event."""
     event_id = read_current_event()
@@ -81,6 +44,8 @@ def get_current_event_data():
     rows = all_data.get(event_id, [])
     return event_id, rows
 
+
+# --- Formatting ---
 def format_event_name(key: str) -> str:
     """Formats eventId like 'season1#preseason2' → 'Season1 - Preseason2'."""
     parts = key.split("#")
@@ -91,10 +56,11 @@ def format_event_name(key: str) -> str:
         formatted_parts.append(part)
     return " - ".join(formatted_parts)
 
+
 def format_leaderboard(event_id, rows):
     """Creates the Discord message for the current event's leaderboard."""
     event_name = format_event_name(event_id)
-    registry = load_registry()
+    registry = load_registry(REGISTRY_PATH)
 
     msg = f"**🏁 {event_name} 🏁**\n"
     if not rows:
@@ -105,6 +71,7 @@ def format_leaderboard(event_id, rows):
         steam_name = entry.get("driver", "Unknown")
         lap = entry.get("lap_time", "N/A")
 
+        # Name substitution using shared utils
         real_name = lookup_real_name(steam_name, registry)
         display_name = real_name if real_name else steam_name
 
@@ -112,6 +79,8 @@ def format_leaderboard(event_id, rows):
 
     return msg
 
+
+# --- File Hash ---
 def get_file_hash(path):
     try:
         with open(path, "rb") as f:
@@ -129,7 +98,7 @@ async def check_leaderboard():
         if not current_hash or current_hash == last_hash:
             return
 
-        # Allow partial file write to finish
+        # Allow partial write to finish
         await asyncio.sleep(2)
         new_hash = get_file_hash(LEADERBOARD_PATH)
         if new_hash != current_hash:
@@ -137,31 +106,32 @@ async def check_leaderboard():
 
         last_hash = current_hash
 
-        # Load ONLY current event data
         event_id, rows = get_current_event_data()
         event_name = format_event_name(event_id)
         msg_text = format_leaderboard(event_id, rows)
 
         channel = bot.get_channel(CHANNEL_ID)
 
-        # Try to edit existing message showing THIS event's leaderboard
+        # Try to edit an existing message for THIS event
         async for message in channel.history(limit=20):
             if message.author == bot.user and event_name in message.content:
                 await message.edit(content=msg_text)
                 logger.info(f"✏️ Edited leaderboard for {event_name}")
                 return
 
-        # If no existing message, post a new one
+        # Or send a new message
         await channel.send("\n\n" + msg_text + "\n\n")
         logger.info(f"🆕 Posted new leaderboard for {event_name}")
 
     except Exception as e:
         logger.error(f"Error checking leaderboard: {e}")
 
-# --- Bot Events ---
+
+# --- Bot Startup ---
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
     check_leaderboard.start()
+
 
 bot.run(DISCORD_TOKEN)

@@ -1,46 +1,39 @@
-import sys, os
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(BASE_DIR)
+import os
 import json
-import time
 import hashlib
-import discord
 from pathlib import Path
+import discord
 from discord.ext import tasks
 from dotenv import load_dotenv
 from logs.logger import logger
+from bot.utils import load_registry, lookup_real_name
 
-# --- CONFIG ---
+# --- ENV ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
-STANDINGS_CHANNEL_ID = int(os.getenv("STANDINGS_CHANNEL"))
-SEASON_STANDINGS_PATH = os.getenv("SEASON_STANDINGS_PATH")
-EVENT_FILE = Path(os.getenv("EVENT_FILE"))
+STANDINGS_CHANNEL_ID = int(os.getenv("STANDINGS_CHANNEL_ID"))
+SEASON_STANDINGS_PATH = os.getenv("SEASON_STANDINGS_PATH")  # multi-season json
+EVENT_FILE = Path(os.getenv("EVENT_FILE"))                  # currentEvent.json
+REGISTRY_PATH = Path(os.getenv("REGISTRY_PATH"))
 intents = discord.Intents.default()
 bot = discord.Client(intents=intents)
 last_hash = None
 
+# Utility: get MD5 to detect file changes
 
-# --- Utility: get MD5 hash to detect when seasonStandings.json changes ---
 def file_hash(path):
     try:
         with open(path, "rb") as f:
             return hashlib.md5(f.read()).hexdigest()
     except Exception as e:
-        logger.error(f"[standings] Failed to hash file {path}: {e}")
+        logger.error(f"[standings] Failed to hash {path}: {e}")
         return None
 
 
-# --- Utility: determine current season from currentEvent.json ---
-def get_current_season_key() -> str:
-    """
-    Reads event_id from currentEvent.json and returns "seasonX".
-    Example:
-        event_id = "season1#event2"
-        → "season1"
-    """
+# Determine current season from currentEvent.json
+def get_current_season_key():
     try:
         if not EVENT_FILE.exists():
-            logger.warning("[standings] EVENT_FILE does not exist")
+            logger.warning("[standings] EVENT_FILE not found")
             return None
 
         with open(EVENT_FILE, "r") as f:
@@ -48,29 +41,28 @@ def get_current_season_key() -> str:
 
         event_id = data.get("event_id")
         if not event_id:
-            logger.warning("[standings] event_id missing in EVENT_FILE")
             return None
 
-        # Extract season part → "season1"
-        season_key = event_id.split("#")[0]
-        return season_key
+        # "season1#event3" → "season1"
+        return event_id.split("#")[0]
 
     except Exception as e:
-        logger.error(f"[standings] Failed to read season from EVENT_FILE: {e}")
+        logger.error(f"[standings] Failed reading EVENT_FILE: {e}")
         return None
 
 
-# --- Format standings for Discord ----
-def format_standings(season_key: str, season_data: list) -> str:
+# Format standings for Discord
+def format_standings(season_key: str, season_data: list):
     """
-    season_data is the list stored under seasonStandings.json[season_key]
-    Format:
-        [
-           ["driverName", {points, events, best_pos}],
-           ...
-        ]
+    season_data is array under:
+      {
+         "season1": [ ["driver", {...}], ... ]
+      }
     """
-    # Extract season number for pretty text
+
+    registry = load_registry(REGISTRY_PATH)
+
+    # "season1" → "1"
     season_number = season_key.replace("season", "")
 
     msg = f"**📊 Season {season_number} Standings 📊**\n\n"
@@ -78,18 +70,20 @@ def format_standings(season_key: str, season_data: list) -> str:
     if not season_data:
         return msg + "_No standings yet._"
 
-    for i, (driver, stats) in enumerate(season_data, 1):
+    for i, (steam_name, stats) in enumerate(season_data, 1):
+        real_name = lookup_real_name(steam_name, registry)
+        display = real_name if real_name else steam_name
+
         pts = stats.get("points", 0)
-        msg += f"{i}. {driver} — {pts} pts\n"
+        msg += f"{i}. {display} — {pts} pts\n"
 
-    msg += "\n"
-    return msg
+    return msg + "\n"
 
 
-# --- Discord bot logic: watch for changes to seasonStandings.json ----
+# Discord Bot: Poll for changes to seasonStandings.json
 @bot.event
 async def on_ready():
-    logger.info("[standings] 🟢 bot online")
+    logger.info("[standings] 🟢 post_standings bot online")
     watch_standings.start()
 
 
@@ -101,21 +95,20 @@ async def watch_standings():
     h = file_hash(SEASON_STANDINGS_PATH)
     if not h or h == last_hash:
         return
-
     last_hash = h
 
-    # Load multi-season standings
+    # Load multi-season file
     try:
         with open(SEASON_STANDINGS_PATH, "r") as f:
             all_standings = json.load(f)
     except Exception as e:
-        logger.error(f"[standings] Failed to read {SEASON_STANDINGS_PATH}: {e}")
+        logger.error(f"[standings] Unable to read file: {e}")
         return
 
-    # Determine which season to display
+    # Determine which season to post
     season_key = get_current_season_key()
     if not season_key:
-        logger.warning("[standings] Cannot determine season; skipping post")
+        logger.warning("[standings] No valid season key found")
         return
 
     season_data = all_standings.get(season_key, [])
@@ -129,7 +122,7 @@ async def watch_standings():
         logger.error("[standings] Could not access standings channel")
         return
 
-    logger.info(f"[standings] 🆕 Posting standings for {season_key}")
+    logger.info(f"[standings] 🆕 Posting new standings for {season_key}")
     await channel.send(msg_text)
 
 
