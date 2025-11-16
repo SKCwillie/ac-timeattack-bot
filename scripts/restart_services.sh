@@ -5,6 +5,7 @@ SERVICES=(
   event-watcher
   discord-leaderboard
   discord-schedule
+  discord-standings
 )
 
 for svc in "${SERVICES[@]}"; do
