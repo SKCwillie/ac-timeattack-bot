@@ -7,8 +7,7 @@ import hashlib
 import discord
 from discord.ext import tasks
 from dotenv import load_dotenv
-
-from bot.logger import logger
+from logs.logger import logger
 
 # --- CONFIG ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
