@@ -59,5 +59,11 @@
 	"track": "ks_nordschleife",
 	"trackConfig": "",
 	"cars": ["ks_porsche_911_gt3_rs"]
-	}
+	},
+  "postseason": {
+    "startDate": "2025-01-13",
+	"track": "magione",
+	"trackConfig": "",
+	"cars": ["bmw_m3_e30"]
+  }
 }

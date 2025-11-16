@@ -41,7 +41,7 @@ def build_schedule_text(config):
         if key == "season":
             continue
 
-        if 'preseason' in key.lower():
+        if 'preseason' in key.lower() or 'postseason' in key.lower():
             continue
 
         # Format date nicely
