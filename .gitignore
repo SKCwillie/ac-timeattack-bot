@@ -9,6 +9,11 @@ venv/
 */venv/
 */bot-venv/
 
+# Runtime generated files
+leaderboard.json
+seasonStandings.json
+currentEvent.json
+
 # Logs and results
 logs/*.log
 logs/*.logs
