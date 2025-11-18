@@ -20,9 +20,7 @@ def load_season_events():
     with open(SEASON_CONFIG_PATH) as f:
         season = json.load(f)
 
-    #events = [key for key in season if key.startswith("event")]
-    events = [key for key in season]
-
+    events = [key for key in season if key.startswith("event")]
     events.sort()  # ensure event1 → event2 → event3
     return events
 

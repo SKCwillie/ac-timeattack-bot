@@ -47,7 +47,7 @@ async def send_discord_message(msg: str):
 def write_event(event_id):
     """Atomically write current event info to file."""
     tmp_path = EVENT_FILE.with_suffix(".tmp")
-    season_key = event_id.split("#")[0]
+    season_key = event_id.split("#")[1]
 
     data = {
         "event_id": event_id,
