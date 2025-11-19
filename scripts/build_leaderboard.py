@@ -162,10 +162,7 @@ def update_leaderboard(event_id):
     # Save entire updated file
     save_leaderboard(existing)
 
-    logger.info(f"✅ Leaderboard updated and saved to {LEADERBOARD_PATH}")
-    logger.info(f"{existing}")
-
-
+    logger.info(f"🔄 Leaderboard updated")
 
 
 # --- MAIN EXECUTION ---
