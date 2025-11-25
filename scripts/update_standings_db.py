@@ -108,7 +108,7 @@ def update_standings(season_id="season1"):
 
     for idx, event_key in enumerate(events, start=1):
         event_id = f"{season_id}#{event_key}"
-        logger.info(f"\n 🔁 Processing {full_event_id} ...")
+        logger.info(f"\n 🔁 Processing {event_id} ...")
 
         # 1. Load raw laps
         raw_laps = fetch_items_for_event(event_id)
