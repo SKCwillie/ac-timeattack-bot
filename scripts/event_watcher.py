@@ -146,4 +146,5 @@ def monitor_current_event():
 
 
 if __name__ == "__main__":
+    write_event("season1#event2")
     monitor_current_event()
