@@ -1,14 +1,18 @@
-import os
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import pytz
 from dotenv import load_dotenv
 from datetime import datetime
 from pathlib import Path
+from logs.logger import logger
 
 
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
 SEASON_CONFIG_PATH = os.getenv("SEASON_CONFIG_PATH")
 EVENT_FILE = Path(os.getenv("EVENT_FILE"))
+EVENT_TZ = os.getenv("EVENT_TZ", "America/Chicago")
+EVENT_START_OFFSET_HOURS=int(os.getenv("EVENT_START_OFFSET_HOURS", 0))
 
 def get_current_event_id():
     """Determine the current event based on CST time and seasonConfig.json."""
@@ -17,7 +21,9 @@ def get_current_event_id():
 
     season_num = config.get("season", 1)
     print(season_num)
-    now_cst = datetime.now(pytz.timezone("America/Chicago"))
+
+    tz = pytz.timezone(EVENT_TZ)
+    now_cst = datetime.now(tz)
 
     current_event = None
     current_start = None
@@ -25,11 +31,19 @@ def get_current_event_id():
     for key, event in config.items():
         if key == "season":
             continue
+
         try:
+            # Parse the date (YYYY-MM-DD)
             start_date = datetime.strptime(event["startDate"], "%Y-%m-%d")
-            start_date_cst = pytz.timezone("America/Chicago").localize(start_date)
+
+            # Convert to midnight CST
+            start_date_cst = tz.localize(start_date)
+
+            # Apply the offset hours
+            start_date_cst = start_date_cst + timedelta(hours=EVENT_START_OFFSET_HOURS)
+
         except Exception as e:
-            print(f"Skipping {key}: invalid date ({e})")
+            logger.error(f"Skipping {key}: invalid date ({e})")
             continue
 
         # Choose the latest event that already started
@@ -40,7 +54,7 @@ def get_current_event_id():
             current_start = start_date_cst
 
     if not current_event:
-        print("No event has started yet — defaulting to preseason.")
+        logger.info("No event has started yet — defaulting to preseason.")
         current_event = "preseason"
 
     event_id = f"season{season_num}#{current_event}"
@@ -71,4 +85,4 @@ def read_current_event():
 
 
 if __name__ == "__main__":
-    get_current_event_id() == read_current_event()
+    get_current_event_id()
