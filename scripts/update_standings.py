@@ -1,19 +1,16 @@
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
+from calculate_weely_points import weely_points
 from dotenv import load_dotenv
 from logs.logger import logger
 from bot.post_leaderboard import lookup_real_name, load_registry
 
-# --- Load .env ---
+# --- CONFIG ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
-
 SEASON_CONFIG_PATH = os.getenv("SEASON_CONFIG_PATH")
 LEADERBOARD_PATH = os.getenv("LEADERBOARD_PATH")
 SEASON_STANDINGS_PATH = os.getenv("SEASON_STANDINGS_PATH")
-
-# Scoring system (edit if you want)
-POINTS_TABLE = [10, 7, 5, 3, 2]
 
 
 def load_season_events():
@@ -67,9 +64,7 @@ def calculate_standings(season_key="season1"):
                 continue
 
             lap_time = lap_ms / 1000.0
-
-            # --- NEW SCORING FORMULA ---
-            points = round(101 * (winner_lap / lap_time), 2)
+            points = weely_points(winner_lap, lap_time)
 
             if driver not in standings:
                 standings[driver] = {
