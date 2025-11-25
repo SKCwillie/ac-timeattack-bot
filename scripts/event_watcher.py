@@ -23,7 +23,7 @@ SEASON_CONFIG_PATH = Path(os.getenv("SEASON_CONFIG_PATH"))
 EVENT_FILE = Path(os.getenv("EVENT_FILE"))
 UPDATE_SCRIPT = Path("/home/ubuntu/ac-timeattack-bot/scripts/update_server.py")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-DISCORD_CHANNEL_ID = os.getenv("STANDINGS_CHANNEL")
+DISCORD_CHANNEL_ID = int(os.getenv("STANDINGS_CHANNEL_ID"))
 
 
 async def send_discord_message(msg: str):
@@ -35,10 +35,10 @@ async def send_discord_message(msg: str):
         await client.wait_until_ready()
         channel = client.get_channel(DISCORD_CHANNEL_ID)
         if channel is None:
-            print("❌ ERROR: Bot cannot see channel:", DISCORD_CHANNEL_ID)
+            logger.error("❌ ERROR: Bot cannot see channel:", DISCORD_CHANNEL_ID)
         else:
             await channel.send(msg)
-            print("✅ Message sent to Discord")
+            logger.info("✅ Message sent to Discord")
         await client.close()
 
     await client.start(DISCORD_TOKEN)
@@ -47,7 +47,8 @@ async def send_discord_message(msg: str):
 def write_event(event_id):
     """Atomically write current event info to file."""
     tmp_path = EVENT_FILE.with_suffix(".tmp")
-    season_key = event_id.split("#")[1]
+    season_key = event_id.split("#")[0]
+    logger.info(f"[event_watcher] Season Key: {season_key}")
 
     data = {
         "event_id": event_id,
@@ -145,6 +146,7 @@ def monitor_current_event():
 
 
 if __name__ == "__main__":
+    write_event("season1#event2")
     monitor_current_event()
 
 
