@@ -93,7 +93,7 @@ def format_for_discord(final):
     for i, (driver, data) in enumerate(final, 1):
         real = lookup_real_name(driver, registry)
         display = real if real else driver
-        msg += f"{i}. {driver} — {data['points']} pts\n"
+        msg += f"{i}. {display} — {data['points']} pts\n"
     return msg
 
 
