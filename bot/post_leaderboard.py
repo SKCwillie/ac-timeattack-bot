@@ -164,4 +164,8 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
     check_leaderboard.start()
 
-bot.run(DISCORD_TOKEN)
+def start_bot():
+    bot.run(DISCORD_TOKEN)
+
+if __name__ == "__main__":
+    start_bot()

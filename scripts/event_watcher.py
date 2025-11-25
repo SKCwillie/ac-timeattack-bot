@@ -12,6 +12,7 @@ import asyncio
 import pytz
 from get_event_id import get_current_event_id
 from update_standings import calculate_standings, format_for_discord
+from update_standings_db import update_standings
 from logs.logger import logger
 
 # --- LOAD ENV ---
@@ -58,10 +59,13 @@ def write_event(event_id):
         json.dump(data, f, indent=2)
     tmp_path.replace(EVENT_FILE)
     logger.info(f"[event_watcher] 📝 Wrote new current event: {event_id}")
+    update_standings(season_key)
+    logger.info(f"[event_watcher] 🛢 Updated Standings Database: {season_key}")
     standings = calculate_standings(season_key)
     logger.info(f"[event_watcher] 📝 Calculated new standings: {season_key}")
     msg = format_for_discord(standings)
     logger.info("📢 Sending season standings update to Discord...")
+
 
     try:
         asyncio.run(send_discord_message(msg))
