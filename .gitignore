@@ -13,6 +13,7 @@ venv/
 leaderboard.json
 seasonStandings.json
 currentEvent.json
+driver_registry.json
 
 # Logs and results
 logs/*.log
