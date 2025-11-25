@@ -4,6 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import boto3
 from boto3.dynamodb.conditions import Key
+from datetime import datetime
 from dotenv import load_dotenv
 from logs.logger import logger
 from bot.post_leaderboard import lookup_real_name, load_registry
@@ -11,12 +12,15 @@ from bot.post_leaderboard import lookup_real_name, load_registry
 # --- CONFIG ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
 SEASON_CONFIG_PATH = os.getenv("SEASON_CONFIG_PATH")
-SEASON_STANDINGS_PATH = os.getenv("SEASON_STANDINGS_PATH")
+SEASON_STANDINGS_DIR = os.getenv("SEASON_STANDINGS_DIR")  # directory, not file
 STANDINGS_TABLE = os.getenv("STANDINGS_TABLE")
 DROP_WEEKS = int(os.getenv("DROP_WEEKS", "2"))
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(STANDINGS_TABLE)
+
+# Ensure standings directory exists
+os.makedirs(SEASON_STANDINGS_DIR, exist_ok=True)
 
 
 def load_season_events():
@@ -24,7 +28,7 @@ def load_season_events():
     with open(SEASON_CONFIG_PATH) as f:
         season = json.load(f)
 
-    events = [key for key in season if key.startswith("event")]
+    events = [key for key in season.keys() if key.startswith("event")]
     events.sort()  # ensure event1 → event2 → event3
     return events
 
@@ -49,18 +53,18 @@ def get_season_rows(season_key: str):
 
 def calculate_standings(season_key: str = "season1"):
     """
-    Calculate season standings using the Standings DynamoDB table.
-
+    Calculate standings using DynamoDB Standings table.
     Drop logic:
-      - Count how many events exist in seasonConfig (TOTAL_EVENTS)
-      - Read DROP_WEEKS from .env
-      - Each driver's score = sum of their best (TOTAL_EVENTS - DROP_WEEKS) events
-      - Early in the season, if fewer events exist, just use all available.
+      - TOTAL_EVENTS = number of events in seasonConfig
+      - COUNTED_EVENTS = TOTAL_EVENTS - DROP_WEEKS
+      - Keep best COUNTED_EVENTS per driver (or all if early season)
     """
-    logger.info(f"[standings] 🔄 Calculating standings from DynamoDB for {season_key}")
+    logger.info(f"[standings] 🔄 Calculating standings for {season_key}...")
 
+    # Load all season results from DB
     all_results = get_season_rows(season_key)
 
+    # Count total events from season config
     events = load_season_events()
     TOTAL_EVENTS = len(events)
     COUNTED_EVENTS = TOTAL_EVENTS - DROP_WEEKS
@@ -74,8 +78,7 @@ def calculate_standings(season_key: str = "season1"):
     drivers = {}
 
     for row in all_results:
-        # Use screen name (driverName) as the key so it matches your registry
-        driver_name = row["driverName"]
+        driver_name = row["driverName"]      # screen name
         event_id = row["eventId"]
         event_index = int(row.get("eventIndex", 0))
         points = float(row.get("points", 0.0))
@@ -88,36 +91,47 @@ def calculate_standings(season_key: str = "season1"):
     standings = []
 
     for driver_name, results in drivers.items():
-        # Sort BEST → WORST by points
+        # Sort best → worst by points
         sorted_results = sorted(results, key=lambda r: r[2], reverse=True)
 
         num_available = len(sorted_results)
-
-        # Keep the best (TOTAL_EVENTS - DROP_WEEKS), but not more than we have so far
         num_to_keep = min(COUNTED_EVENTS, num_available)
 
         kept = sorted_results[:num_to_keep]
         dropped = sorted_results[num_to_keep:]
 
-        total_points = round(sum(r[2] for r in kept), 2)
+        total_points = round(sum(p for (_, _, p) in kept), 2)
 
         standings.append({
-            "driver": driver_name,         # screen name; used for registry lookup + display fallback
+            "driver": driver_name,
             "total_points": total_points,
-            "kept_events": kept,          # list of (eventIndex, eventId, points)
+            "kept_events": kept,        # list of (eventIndex, eventId, points)
             "dropped_events": dropped,
             "drops": len(dropped),
             "total_events": num_available
         })
 
-    # Sort final standings DESC by points
+    # Sort final standings by points DESC
     standings.sort(key=lambda x: x["total_points"], reverse=True)
 
-    # Write seasonStandings.json (now list of dicts)
-    with open(SEASON_STANDINGS_PATH, "w") as f:
-        json.dump(standings, f, indent=2)
+    # Save to per-season JSON file
+    season_file = os.path.join(SEASON_STANDINGS_DIR, f"{season_key}.json")
 
-    logger.info(f"[standings] 🏆 Updated season standings at {SEASON_STANDINGS_PATH}")
+    with open(season_file, "w") as f:
+        json.dump(
+            {
+                "season": season_key,
+                "last_updated": datetime.now().isoformat(),
+                "total_events": TOTAL_EVENTS,
+                "drop_weeks": DROP_WEEKS,
+                "counted_events": COUNTED_EVENTS,
+                "standings": standings
+            },
+            f,
+            indent=2
+        )
+
+    logger.info(f"[standings] 🏆 Standings saved → {season_file}")
 
     return standings
 
@@ -127,9 +141,8 @@ def format_for_discord(standings):
     Format standings for Discord.
 
     Name logic:
-      - Look up the driver's screen name in the registry (steam name → real name)
-      - If found, display the real name
-      - If not found, display the screen name
+      - Look up the driver's screen name in registry (steam → real name)
+      - If found, show real name; else show screen name
     """
     registry = load_registry()
     msg = "**🏆 Season Standings 🏆**\n\n"
