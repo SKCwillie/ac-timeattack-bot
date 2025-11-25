@@ -35,7 +35,7 @@ def get_best_laps_df(raw_laps):
     df = pd.DataFrame(raw_laps)
 
     # convert lap_ms to float for math
-    df["lap_ms"] = df["lap_ms"].astype(float)
+    df["lap_ms"] = df["lapTime"].astype(float)
 
     # Best lap per driverGuid = min lap_ms
     best_df = df.loc[df.groupby("driverGuid")["lap_ms"].idxmin()].copy()
