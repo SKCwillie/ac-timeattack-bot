@@ -69,7 +69,7 @@ def calculate_standings(season_key="season1"):
             lap_time = lap_ms / 1000.0
 
             # --- NEW SCORING FORMULA ---
-            points = round(101 * (winner_lap / lap_time) ** 1.5, 2)
+            points = round(101 * (winner_lap / lap_time), 2)
 
             if driver not in standings:
                 standings[driver] = {
