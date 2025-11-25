@@ -37,6 +37,12 @@ def load_leaderboards():
 
 
 def calculate_standings(season_key="season1"):
+    """
+    Build season standings using the scoring formula:
+        points = 101 * (winner_lap / driver_lap)
+    Internal standings use raw Steam names (no registry applied).
+    Sorted only by total points, descending.
+    """
     events = load_season_events()
     lb = load_leaderboards()
 
@@ -46,39 +52,58 @@ def calculate_standings(season_key="season1"):
         full_key = f"{season_key}#{event_key}"
 
         if full_key not in lb:
-            # event not done yet → skip
+            # Event not completed → skip
             continue
 
-        results = lb[full_key]  # already sorted fastest → slowest
+        results = lb[full_key]  # sorted fastest → slowest
 
+        # --- Extract winner lap time ---
+        winner_lap_raw = results[0].get("lap_time")
+        try:
+            winner_lap = float(winner_lap_raw)
+        except:
+            # Ignore event if winner lap is invalid
+            continue
+
+        # --- Process each driver in the event ---
         for pos, row in enumerate(results):
             driver = row.get("driver")
             if not driver:
                 continue
 
-            points = POINTS_TABLE[pos] if pos < len(POINTS_TABLE) else 0
+            lap_raw = row.get("lap_time")
+            try:
+                lap_time = float(lap_raw)
+            except:
+                continue
 
+            # --- New scoring formula ---
+            if lap_time > 0:
+                points = round(101 * (winner_lap / lap_time), 2)
+            else:
+                points = 0
+
+            # --- Store in standings ---
             if driver not in standings:
                 standings[driver] = {
-                    "points": 0,
-                    "events": 0,
-                    "best_pos": 999
+                    "points": 0.0,
+                    "events": 0
                 }
 
             standings[driver]["points"] += points
             standings[driver]["events"] += 1
-            standings[driver]["best_pos"] = min(
-                standings[driver]["best_pos"],
-                pos + 1
-            )
 
-    # Sort by points, then best position
+    # --- Round final totals to 2 decimal places ---
+    for d in standings.values():
+        d["points"] = round(d["points"], 2)
+
+    # --- Sort by total points only ---
     final = sorted(
         standings.items(),
-        key=lambda x: (-x[1]["points"], x[1]["best_pos"])
+        key=lambda x: -x[1]["points"]
     )
 
-    # Save
+    # --- Save to JSON ---
     with open(SEASON_STANDINGS_PATH, "w") as f:
         json.dump(final, f, indent=2)
 
