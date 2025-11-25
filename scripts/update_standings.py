@@ -46,45 +46,57 @@ def calculate_standings(season_key="season1"):
         full_key = f"{season_key}#{event_key}"
 
         if full_key not in lb:
-            # event not done yet → skip
             continue
 
         results = lb[full_key]  # already sorted fastest → slowest
+
+        # Winner lap_ms → seconds
+        winner_ms = results[0].get("lap_ms")
+        if winner_ms is None or winner_ms <= 0:
+            continue
+
+        winner_lap = winner_ms / 1000.0
 
         for pos, row in enumerate(results):
             driver = row.get("driver")
             if not driver:
                 continue
 
-            points = POINTS_TABLE[pos] if pos < len(POINTS_TABLE) else 0
+            lap_ms = row.get("lap_ms")
+            if lap_ms is None or lap_ms <= 0:
+                continue
+
+            lap_time = lap_ms / 1000.0
+
+            # --- NEW SCORING FORMULA ---
+            points = round(101 * (winner_lap / lap_time), 2)
 
             if driver not in standings:
                 standings[driver] = {
-                    "points": 0,
-                    "events": 0,
-                    "best_pos": 999
+                    "points": 0.0,
+                    "events": 0
                 }
 
             standings[driver]["points"] += points
             standings[driver]["events"] += 1
-            standings[driver]["best_pos"] = min(
-                standings[driver]["best_pos"],
-                pos + 1
-            )
 
-    # Sort by points, then best position
+    # Round totals
+    for d in standings.values():
+        d["points"] = round(d["points"], 2)
+
+    # Sort by points desc
     final = sorted(
         standings.items(),
-        key=lambda x: (-x[1]["points"], x[1]["best_pos"])
+        key=lambda x: -x[1]["points"]
     )
 
-    # Save
     with open(SEASON_STANDINGS_PATH, "w") as f:
         json.dump(final, f, indent=2)
 
     logger.info(f"🏆 Updated season standings at {SEASON_STANDINGS_PATH}")
 
     return final
+
 
 
 def format_for_discord(final):
