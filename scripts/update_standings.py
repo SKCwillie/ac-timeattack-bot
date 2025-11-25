@@ -3,6 +3,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 from dotenv import load_dotenv
 from logs.logger import logger
+from bot.post_leaderboard import lookup_real_name, load_registry
 
 # --- Load .env ---
 load_dotenv("/home/ubuntu/ac-timeattack-bot/.env")
@@ -87,8 +88,11 @@ def calculate_standings(season_key="season1"):
 
 
 def format_for_discord(final):
+    registry = load_registry()
     msg = "**🏆 Season Standings 🏆**\n\n"
     for i, (driver, data) in enumerate(final, 1):
+        real = lookup_real_name(driver, registry)
+        display = real if real else driver
         msg += f"{i}. {driver} — {data['points']} pts\n"
     return msg
 
