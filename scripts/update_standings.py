@@ -15,8 +15,9 @@ SEASON_CONFIG_PATH = os.getenv("SEASON_CONFIG_PATH")
 SEASON_STANDINGS_DIR = os.getenv("SEASON_STANDINGS_DIR")  # directory, not file
 STANDINGS_TABLE = os.getenv("STANDINGS_TABLE")
 DROP_WEEKS = int(os.getenv("DROP_WEEKS", "2"))
+REGION = os.getenv("REGION")
 
-dynamodb = boto3.resource("dynamodb")
+dynamodb = boto3.resource("dynamodb", region_name=REGION)
 table = dynamodb.Table(STANDINGS_TABLE)
 
 # Ensure standings directory exists
