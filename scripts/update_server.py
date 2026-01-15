@@ -1,6 +1,7 @@
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
+import time
 import subprocess
 import configparser
 from itertools import cycle
@@ -99,7 +100,7 @@ def update_server_cfg(event_label: str, track: str, track_config: str, cars: lis
     with open(SERVER_CFG_PATH, "w") as f:
         config.write(f, space_around_delimiters=False)
 
-    print(f"✅ Updated {SERVER_CFG_PATH} with track {track} and cars {cars}")
+    logger.info(f"✅ Updated {SERVER_CFG_PATH} with track {track} and cars {cars}")
 
 
 

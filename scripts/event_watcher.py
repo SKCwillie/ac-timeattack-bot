@@ -25,6 +25,7 @@ EVENT_FILE = Path(os.getenv("EVENT_FILE"))
 UPDATE_SCRIPT = Path("/home/ubuntu/ac-timeattack-bot/scripts/update_server.py")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 DISCORD_CHANNEL_ID = int(os.getenv("STANDINGS_CHANNEL_ID"))
+ENABLE_SEASON_STANDINGS = os.getenv("ENABLE_SEASON_STANDINGS", "false").lower() == "true"
 
 
 async def send_discord_message(msg: str):
@@ -68,7 +69,11 @@ def write_event(event_id):
 
 
     try:
-        asyncio.run(send_discord_message(msg))
+        if ENABLE_SEASON_STANDINGS:
+            logger.info("📢 Sending season standings update to Discord...")
+            asyncio.run(send_discord_message(msg))
+        else:
+            logger.info("📢 Season Standings disabled...skipping message")
     except Exception as e:
         logger.error(f"❌ Failed to send standings to Discord: {e}")
 
@@ -137,6 +142,9 @@ def monitor_current_event():
             current_event = get_current_event_id()
             if current_event != last_event:
                 logger.info(f"[event_watcher] 🔄 Event changed → {current_event}")
+                logger.info(f"[event_watcher] 👢 Kicking connected drivers")
+                subprocess.run(["sudo", "/home/ubuntu/ac-timeattack-bot/scripts/kick_drivers.sh"], check=True)
+                time.sleep(30)
                 write_event(current_event)
                 trigger_server_update()
                 last_event = current_event

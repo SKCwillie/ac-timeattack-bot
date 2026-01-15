@@ -36,12 +36,13 @@ def clean_name(name: str) -> str:
 def build_schedule_text(config):
     season_num = config.get("season", "?")
     lines = [f"🏁 **Season {season_num} Schedule** 🏁\n"]
+    excluded_terms = ("preseason", "postseason")
 
     for key, event in config.items():
         if key == "season":
             continue
 
-        if 'preseason' in key.lower():
+        if any(term in key.lower() for term in excluded_terms):
             continue
 
         # Format date nicely

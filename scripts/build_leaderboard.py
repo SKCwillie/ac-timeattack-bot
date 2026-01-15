@@ -27,6 +27,18 @@ def ms_to_time(ms):
     ms_remainder = int(ms % 1000)
     return f"{mins}:{secs:02d}.{ms_remainder:03d}"
 
+def convert_decimals(obj):
+    """Recursively convert Decimal to int/float so json.dump works."""
+    if isinstance(obj, Decimal):
+        # choose int vs float based on whether it has a fractional part
+        return int(obj) if obj % 1 == 0 else float(obj)
+    if isinstance(obj, list):
+        return [convert_decimals(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: convert_decimals(v) for k, v in obj.items()}
+    return obj
+
+
 def fetch_items_for_event(event_id):
     """Query DynamoDB for items belonging to a specific eventId (partition key)."""
     items = []
@@ -86,6 +98,7 @@ def build_leaderboard(event_id):
         # --- FILTER BY TRACK ONLY ---
         track = item.get("trackName", "").lower()
         if track != allowed_track:
+            logger.info(f"[build_leaderboard] Lap track: {track} does not match allowed track: {allowed_track}")
             continue
 
         # --- Skip invalid laps ---
@@ -130,12 +143,12 @@ def load_existing_leaderboard():
             logger.error("Warning: leaderboard file is corrupt, starting fresh.")
     return {}
 
-
 def save_leaderboard(leaderboard):
     """Save leaderboard atomically to prevent corruption."""
     temp_path = LEADERBOARD_PATH.with_suffix(".tmp")
+    safe = convert_decimals(leaderboard)
     with open(temp_path, "w") as f:
-        json.dump(leaderboard, f, indent=2)
+        json.dump(safe, f, indent=2)
     temp_path.replace(LEADERBOARD_PATH)
 
 
