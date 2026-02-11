@@ -1,69 +1,63 @@
 {
-"season": 1,
+"season": 2,
 "preseason": {
-	"startDate": "2025-11-10",
-	"track": "magione",
-	"trackConfig": "",
-	"cars": ["bmw_m3_e30"]
-	},
+        "startDate": "2026-11-10",
+        "track": "ozarks_raceway",
+        "trackConfig": "",
+        "cars": ["ks_mazda_miata"]
+        },
 "postseason1":{
-	"startDate": "2026-01-13",
-	"track": "pk_gunma_cycle_sports_center",
-	"trackConfig": "gcsc_full_attack",
-	"cars": ["ks_audi_sport_quattro_s1", "ks_mazda_miata"]
-},
-"postseason2":{
-	"startDate": "2026-01-16",
-	"track": "magione",
-	"trackConfig": "",
-	"cars": ["ks_mazda_rx7_tuned"]
+        "startDate": "2026-04-14",
+        "track": "pk_gunma_cycle_sports_center",
+        "trackConfig": "gcsc_full_attack",
+        "cars": ["ks_audi_sport_quattro_s1", "ks_mazda_miata"]
 },
 "event1": {
-	"startDate": "2025-11-18",
-	"track": "spa",
-	"trackConfig": "",
-	"cars": ["bmw_z4_gt3"]
-	},
+        "startDate": "2026-02-16",
+        "track": "ozarks_raceway",
+        "trackConfig": "",
+        "cars": ["ks_mazda_rx7_spirit_r"]
+        },
 "event2": {
-	"startDate": "2025-11-25",
-	"track": "monza",
-	"trackConfig": "",
-	"cars": ["ferrari_f40"]
-	},
+        "startDate": "2026-02-24",
+        "track": "ks_vallelunga",
+        "trackConfig": "extended_circuit",
+        "cars": ["ks_toyota_gt86"]
+        },
 "event3": {
-	"startDate": "2025-12-02",
-	"track": "imola",
-	"trackConfig": "",
-	"cars": ["bmw_m3_e30_dtm"]
-	},
+        "startDate": "2026-03-03",
+        "track": "ks_barcelona",
+        "trackConfig": "layout_gp",
+        "cars": ["ks_mercedes_c9"]
+        },
 "event4": {
-	"startDate": "2025-12-09",
-	"track": "ks_laguna_seca",
-	"trackConfig": "",
-	"cars": ["ks_mazda_mx5_cup"]
-	},
+        "startDate": "2026-03-10",
+        "track": "shomaru",
+        "trackConfig": "",
+        "cars": ["ks_toyota_ae86_tuned"]
+        },
 "event5": {
-	"startDate": "2025-12-16",
-	"track": "ks_highlands",
-	"trackConfig": "layout_drift",
-	"cars": ["ks_corvette_c7r"]
-	},
+        "startDate": "2026-03-17",
+        "track": "ks_brands_hatch",
+        "trackConfig": "gp",
+        "cars": ["lotus_elise_sc_s2"]
+        },
 "event6": {
-	"startDate": "2025-12-23",
-	"track": "ks_zandvoort",
-	"trackConfig": "",
-	"cars": ["ks_toyota_ae86"]
-	},
+        "startDate": "2026-03-24",
+        "track": "ks_red_bull_ring",
+        "trackConfig": "layout_gp",
+        "cars": ["ks_audi_r8_lms"]
+        },
 "event7": {
-	"startDate": "2025-12-30",
-	"track": "ks_silverstone",
-	"trackConfig": "gp",
-	"cars": ["ks_ferrari_sf70h"]
-	},
+        "startDate": "2026-03-31",
+        "track": "pk_akina",
+        "trackConfig": "akina_downhill",
+        "cars": ["ks_mazda_rx7_spirit_r"]
+        },
 "event8": {
-	"startDate": "2026-01-06",
-	"track": "ks_nordschleife",
-	"trackConfig": "touristenfahrten",
-	"cars": ["ks_porsche_911_gt3_rs"]
-	}
+        "startDate": "2026-04-07",
+        "track": "heartland_motorsports_park",
+        "trackConfig": "grandprix",
+        "cars": ["ks_corvette_c7_stingray"]
+        }
 }
