@@ -26,7 +26,7 @@ bot = discord.Client(intents=intents)
 def clean_name(name: str) -> str:
     if not name:
         return ""
-    name = name.replace("ks_", "")  # remove ks_
+    name = name.removeprefix("ks_")  # remove ks_
     name = name.replace("_", " ")   # convert underscores to spaces
     return name.title()             # Title Case
 

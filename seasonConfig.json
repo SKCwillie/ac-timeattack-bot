@@ -1,10 +1,10 @@
 {
 "season": 2,
 "preseason": {
-        "startDate": "2026-11-10",
+        "startDate": "2026-02-11",
         "track": "ozarks_raceway",
         "trackConfig": "",
-        "cars": ["ks_mazda_miata"]
+        "cars": ["ks_mazda_miata", "ks_toyota_gt86"]
         },
 "postseason1":{
         "startDate": "2026-04-14",
