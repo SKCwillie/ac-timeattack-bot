@@ -90,6 +90,7 @@ def update_server_cfg(event_label: str, track: str, track_config: str, cars: lis
     config["SERVER"]["WELCOME_MESSAGE"] = f"Welcome to {event_label}!"
     config["SERVER"]["LOOP_MODE"] = "1"
     config["SERVER"]["REGISTER_TO_LOBBY"] = "0"
+    config["SERVER"]["MAX_CLIENTS"] = str(TOTAL_SLOTS)
 
     # --- Update allowed cars list ---
     config["SERVER"]["CARS"] = ";".join(cars)
